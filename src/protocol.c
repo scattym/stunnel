@@ -1199,9 +1199,9 @@ NOEXPORT char *xmpp_client(CLI *c, SERVICE_OPTIONS *opt, const PHASE phase) {
            char *hostname;
            //hostname=strtok(c->opt->remote_address,":");
            hostname=strtok(c->opt->servname,":");
-           fdprintf(c, c->remote_fd.fd, "<?xml version='1.0'?><stream:stream to='%s' xmlns='jabber:client' xmlns:stream='http://etherx.jabber.org/streams' version='1.0'>", hostname);
+    fd_printf(c, c->remote_fd.fd, "<?xml version='1.0'?><stream:stream to='%s' xmlns='jabber:client' xmlns:stream='http://etherx.jabber.org/streams' version='1.0'>", hostname);
            read_until(c, c->remote_fd.fd, hello_end);
-           fdputline(c, c->remote_fd.fd, "<starttls xmlns='urn:ietf:params:xml:ns:xmpp-tls'/>");
+    fd_putline(c, c->remote_fd.fd, "<starttls xmlns='urn:ietf:params:xml:ns:xmpp-tls'/>");
            read_until(c, c->remote_fd.fd, tls_success_start);
            read_until(c, c->remote_fd.fd, tls_success_end);
         s_log(LOG_INFO, "XMPP Start TLS successfully negotiated");
