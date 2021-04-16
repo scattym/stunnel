@@ -728,6 +728,64 @@ void fd_putline(CLI *c, SOCKET fd, const char *line) {
     s_log(LOG_DEBUG, " -> %s", line);
 }
 
+static void shiftstring(char *str, char chr) {
+           int i;
+           int length;
+           length=strlen(str);
+           for(i=0;i<length-1; i++){
+                       str[i]=str[i+1];
+               }
+           str[length-1]=chr;
+    }
+
+void read_until(CLI *c, int fd, char *goalstring) {
+           s_poll_set fds;
+           char line[2];
+           char string[256];
+           int length;
+           int i;
+           length=strlen(goalstring);
+           for(i=0; i<length; i++){
+                       string[i]='0';
+               }
+           string[length]='\0';
+           do {
+                s_poll_init(&fds, 0);
+                s_poll_add(&fds, fd, 1, 0); /* read */
+                switch(s_poll_wait(&fds, c->opt->timeout_busy, 0)) {
+                    case -1:
+                            sockerror("read_until: s_poll_wait");
+//                            str_free(line);
+                        throw_exception(c, 1); /* error */
+                        case 0:
+                            s_log(LOG_INFO, "read_until: s_poll_wait:"
+                                                             " TIMEOUTbusy exceeded: sending reset");
+//                            str_free(line);
+                        throw_exception(c, 1); /* timeout */
+                        case 1:
+                            break; /* OK */
+                        default:
+                            s_log(LOG_ERR, "read_until: s_poll_wait: unknown result");
+//                            str_free(line);
+                        throw_exception(c, 1); /* error */
+                        }
+                switch(readsocket(fd, line, 1)) {
+                    case -1: /* error */
+                            sockerror("readsocket (read_until)");
+//                            str_free(line);
+                        throw_exception(c, 1);
+                        case 0: /* EOF */
+                            s_log(LOG_ERR, "Unexpected socket close (read_until)");
+//                            str_free(line);
+                        throw_exception(c, 1);
+                        }
+                       if(isspace(line[0]))
+                                   line[0]=' ';
+                       shiftstring(string,line[0]);
+               } while(strcmp(string, goalstring));
+    }
+
+
 char *fd_getline(CLI *c, SOCKET fd) {
     char *line;
     size_t ptr=0, allocated=32;

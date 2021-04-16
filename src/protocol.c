@@ -65,6 +65,7 @@ NOEXPORT char *imap_client(CLI *, SERVICE_OPTIONS *, const PHASE);
 NOEXPORT char *imap_server(CLI *, SERVICE_OPTIONS *, const PHASE);
 NOEXPORT char *nntp_client(CLI *, SERVICE_OPTIONS *, const PHASE);
 NOEXPORT char *ldap_client(CLI *, SERVICE_OPTIONS *, const PHASE);
+NOEXPORT char *xmpp_client(CLI *, SERVICE_OPTIONS *, const PHASE);
 NOEXPORT char *connect_server(CLI *, SERVICE_OPTIONS *, const PHASE);
 NOEXPORT char *connect_client(CLI *, SERVICE_OPTIONS *, const PHASE);
 #ifndef OPENSSL_NO_MD4
@@ -110,6 +111,10 @@ char *protocol(CLI *c, SERVICE_OPTIONS *opt, const PHASE phase) {
         return opt->option.client ?
             imap_client(c, opt, phase) :
             imap_server(c, opt, phase);
+    if(!strcasecmp(opt->protocol, "xmpp"))
+        return opt->option.client ?
+               xmpp_client(c, opt, phase) :
+               "The 'xmpp' protocol is not supported in the server mode";
     if(!strcasecmp(opt->protocol, "nntp"))
         return opt->option.client ?
             nntp_client(c, opt, phase) :
@@ -1186,6 +1191,23 @@ uint8_t ldap_starttls_message[0x1d + 2] = {
 /* also see:
  * https://ldap.com/ldapv3-wire-protocol-reference-extended/
  */
+
+NOEXPORT char *xmpp_client(CLI *c, SERVICE_OPTIONS *opt, const PHASE phase) {
+           char hello_end[]="</stream:features>";
+           char tls_success_start[]="<proceed ";
+           char tls_success_end[]="/>";
+           char *hostname;
+           //hostname=strtok(c->opt->remote_address,":");
+           hostname=strtok(c->opt->servname,":");
+           fdprintf(c, c->remote_fd.fd, "<?xml version='1.0'?><stream:stream to='%s' xmlns='jabber:client' xmlns:stream='http://etherx.jabber.org/streams' version='1.0'>", hostname);
+           read_until(c, c->remote_fd.fd, hello_end);
+           fdputline(c, c->remote_fd.fd, "<starttls xmlns='urn:ietf:params:xml:ns:xmpp-tls'/>");
+           read_until(c, c->remote_fd.fd, tls_success_start);
+           read_until(c, c->remote_fd.fd, tls_success_end);
+        s_log(LOG_INFO, "XMPP Start TLS successfully negotiated");
+        return NULL;
+    }
+
 
 NOEXPORT char *ldap_client(CLI *c, SERVICE_OPTIONS *opt, const PHASE phase) {
     uint8_t buffer_8;

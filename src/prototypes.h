@@ -904,6 +904,8 @@ void ui_new_log(const char *);
 void message_box(LPCTSTR, const UINT);
 #endif /* USE_WIN32 */
 
+void read_until(CLI *, int, char *);
+
 int ui_passwd_cb(char *, int, int, void *);
 #ifndef OPENSSL_NO_ENGINE
 int (*ui_get_opener(void)) (UI *);
